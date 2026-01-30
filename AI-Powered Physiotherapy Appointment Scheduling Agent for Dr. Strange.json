@@ -1,0 +1,1546 @@
+{
+  "name": "AI-Powered Physiotherapy Appointment Scheduling Agent for Dr. Strange",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dr-strange-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "bf0727aa-ec04-456c-ad24-294ae88f84ab",
+      "name": "Receive Booking Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -3584,
+        384
+      ],
+      "webhookId": "d0731ec4-8185-4d6f-9f98-f41f7ad984f0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "calendarId",
+              "value": "primary",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "sheetId",
+              "value": "YOUR_GOOGLE_SHEET_ID",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "sheetName",
+              "value": "Patients",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "timezone",
+              "value": "Asia/Singapore",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "workingHoursStart",
+              "value": "09:00",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "workingHoursEnd",
+              "value": "17:00",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "bufferMinutes",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "id-8",
+              "name": "defaultDurationMinutes",
+              "value": 30,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "262457fe-629f-4d6a-a2d9-c270f96af094",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3360,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "patient_name",
+              "value": "={{ $json.body.patient_name || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "email",
+              "value": "={{ $json.body.email || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "phone",
+              "value": "={{ $json.body.phone || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "preferred_date",
+              "value": "={{ $json.body.preferred_date || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "preferred_time",
+              "value": "={{ $json.body.preferred_time || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "duration_minutes",
+              "value": "={{ $json.body.duration_minutes || 30 }}",
+              "type": "number"
+            },
+            {
+              "id": "id-7",
+              "name": "action",
+              "value": "={{ $json.body.action || 'book' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "event_id",
+              "value": "={{ $json.body.event_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-9",
+              "name": "notes",
+              "value": "={{ $json.body.notes || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1fc765ef-fe9b-41d4-ad3b-98620af9f8e6",
+      "name": "Parse and Validate Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3136,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "02fe4ba9-0aff-4fa4-85f4-2d484d43ba1e",
+      "name": "Check Email Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2912,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "message",
+              "value": "Validation error: patient email is required",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "60bb3d6d-6dc4-474a-beea-34074bd9a0b9",
+      "name": "Email Validation Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "book",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "book"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "reschedule",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reschedule"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "cancel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancel"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "85a1303a-d119-4606-b520-8ac654b16190",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2688,
+        776
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Workflow Configuration').item.json.sheetName }}"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6e86e338-01df-4f68-94d1-d25ccd4db0c0",
+      "name": "Lookup Patient in Database",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2464,
+        168
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jYRkFhkZEIJPiY36",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.preferred_date + 'T' + $json.preferred_time + ':00' }}",
+        "format": "custom",
+        "customFormat": "yyyy-MM-dd'T'HH:mm:ssXXX",
+        "outputFieldName": "requestedDateTime",
+        "options": {
+          "timezone": true
+        }
+      },
+      "id": "21481d6b-4199-42fd-9cc5-dc9db638ea36",
+      "name": "Convert to Singapore Timezone",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -2240,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ new Date($json.requestedDateTime).getDay() }}",
+              "rightValue": "1",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ new Date($json.requestedDateTime).getDay() }}",
+              "rightValue": "5",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $json.preferred_time }}",
+              "rightValue": "09:00",
+              "operator": {
+                "type": "string",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "id-4",
+              "leftValue": "={{ $json.preferred_time }}",
+              "rightValue": "17:00",
+              "operator": {
+                "type": "string",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "321af2b4-2e98-4110-9b16-15a62c5c524c",
+      "name": "Check Working Hours",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2016,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestedDate = new Date($input.item.json.preferred_date + 'T' + $input.item.json.preferred_time + ':00+08:00');\nconst alternatives = [];\nlet currentDate = new Date(requestedDate);\ncurrentDate.setDate(currentDate.getDate() + 1);\ncurrentDate.setHours(9, 0, 0, 0);\n\nwhile (alternatives.length < 3) {\n  const dayOfWeek = currentDate.getDay();\n  if (dayOfWeek >= 1 && dayOfWeek <= 5) {\n    alternatives.push(currentDate.toISOString());\n  }\n  currentDate.setDate(currentDate.getDate() + 1);\n}\n\nreturn [{ json: { alternatives } }];"
+      },
+      "id": "d4020e92-0152-4d00-bb4c-c57340972e6e",
+      "name": "Generate Alternative Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "rejected",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "message",
+              "value": "Requested time is outside working hours (Monday-Friday, 09:00-17:00 Asia/Singapore)",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "suggestions",
+              "value": "={{ $json.alternatives }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad91961a-9e21-4f1b-a405-e5769b9047c1",
+      "name": "Build Outside Hours Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.calendarId }}"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $json.requestedDateTime }}",
+        "timeMax": "={{ new Date(new Date($json.requestedDateTime).getTime() + ($json.duration_minutes + 30) * 60000).toISOString() }}",
+        "options": {}
+      },
+      "id": "8c6b0041-f209-42fe-b4aa-6919de188984",
+      "name": "Search Calendar for Conflicts",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -1792,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestedStart = new Date($input.first().json.requestedDateTime);\nconst durationMinutes = $input.first().json.duration_minutes || 30;\nconst requestedEnd = new Date(requestedStart.getTime() + durationMinutes * 60000);\nconst bufferEnd = new Date(requestedEnd.getTime() + 30 * 60000);\n\nconst calendarEvents = $input.all().slice(1);\nlet hasConflict = false;\nconst conflictingEvents = [];\n\nfor (const item of calendarEvents) {\n  if (!item.json.start || !item.json.end) continue;\n  \n  const eventStart = new Date(item.json.start.dateTime || item.json.start.date);\n  const eventEnd = new Date(item.json.end.dateTime || item.json.end.date);\n  \n  if ((requestedStart >= eventStart && requestedStart < eventEnd) ||\n      (bufferEnd > eventStart && bufferEnd <= eventEnd) ||\n      (requestedStart <= eventStart && bufferEnd >= eventEnd)) {\n    hasConflict = true;\n    conflictingEvents.push(item.json);\n  }\n}\n\nreturn [{ json: { ...$input.first().json, hasConflict, conflictingEvents } }];"
+      },
+      "id": "ba7b6820-aa70-44b5-8e14-ce429c20b708",
+      "name": "Check Conflicts with Buffer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.hasConflict }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bab2d49c-3ae7-4ee5-acef-85e49392347e",
+      "name": "Slot Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1344,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestedDate = new Date($input.first().json.requestedDateTime);\nconst durationMinutes = $input.first().json.duration_minutes || 30;\nconst alternatives = [];\nconst calendarEvents = $input.first().json.conflictingEvents || [];\n\nfunction isSlotAvailable(start, events) {\n  const end = new Date(start.getTime() + durationMinutes * 60000);\n  const bufferEnd = new Date(end.getTime() + 30 * 60000);\n  \n  for (const event of events) {\n    const eventStart = new Date(event.start?.dateTime || event.start?.date);\n    const eventEnd = new Date(event.end?.dateTime || event.end?.date);\n    \n    if ((start >= eventStart && start < eventEnd) ||\n        (bufferEnd > eventStart && bufferEnd <= eventEnd) ||\n        (start <= eventStart && bufferEnd >= eventEnd)) {\n      return false;\n    }\n  }\n  return true;\n}\n\nlet currentDate = new Date(requestedDate);\nlet daysChecked = 0;\n\nwhile (alternatives.length < 3 && daysChecked < 10) {\n  const dayOfWeek = currentDate.getDay();\n  \n  if (dayOfWeek >= 1 && dayOfWeek <= 5) {\n    let hour = (currentDate.getDate() === requestedDate.getDate()) ? currentDate.getHours() : 9;\n    let minute = (currentDate.getDate() === requestedDate.getDate()) ? Math.ceil(currentDate.getMinutes() / 30) * 30 : 0;\n    \n    while (hour < 17) {\n      const slotStart = new Date(currentDate);\n      slotStart.setHours(hour, minute, 0, 0);\n      \n      const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60000);\n      if (slotEnd.getHours() < 17 || (slotEnd.getHours() === 17 && slotEnd.getMinutes() === 0)) {\n        if (isSlotAvailable(slotStart, calendarEvents)) {\n          alternatives.push(slotStart.toISOString());\n          if (alternatives.length >= 3) break;\n        }\n      }\n      \n      minute += 30;\n      if (minute >= 60) {\n        hour++;\n        minute = 0;\n      }\n    }\n  }\n  \n  currentDate.setDate(currentDate.getDate() + 1);\n  currentDate.setHours(9, 0, 0, 0);\n  daysChecked++;\n}\n\nreturn [{ json: { ...$input.first().json, alternatives } }];"
+      },
+      "id": "d308ce19-418f-49c0-a357-4693b010957e",
+      "name": "Find Alternative Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "conflict",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "message",
+              "value": "Requested slot is not available due to existing appointment or buffer time",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "suggestions",
+              "value": "={{ $json.alternatives }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9bda0945-0da0-4bf5-83a8-dbb65d8a05cf",
+      "name": "Build Conflict Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "appointmentStart",
+              "value": "={{ $json.requestedDateTime }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "appointmentEnd",
+              "value": "={{ new Date(new Date($json.requestedDateTime).getTime() + $json.duration_minutes * 60000).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "bufferStart",
+              "value": "={{ new Date(new Date($json.requestedDateTime).getTime() + $json.duration_minutes * 60000).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "bufferEnd",
+              "value": "={{ new Date(new Date($json.requestedDateTime).getTime() + ($json.duration_minutes + 30) * 60000).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "eventSummary",
+              "value": "={{ 'Physiotherapy - ' + $json.patient_name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "eventDescription",
+              "value": "={{ 'Patient: ' + $json.patient_name + '\\nPhone: ' + $json.phone + '\\nNotes: ' + ($json.notes || 'None') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "741aad05-ca9b-4548-a675-fc612f59ada9",
+      "name": "Prepare Calendar Event Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1120,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.calendarId }}"
+        },
+        "start": "={{ $json.appointmentStart }}",
+        "end": "={{ $json.appointmentEnd }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $json.email }}"
+          ],
+          "description": "={{ $json.eventDescription }}",
+          "sendUpdates": "all",
+          "summary": "={{ $json.eventSummary }}"
+        }
+      },
+      "id": "53262b60-ac3c-4ed5-b3eb-50e31522040d",
+      "name": "Create Appointment Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -896,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.calendarId }}"
+        },
+        "start": "={{ $json.bufferStart }}",
+        "end": "={{ $json.bufferEnd }}",
+        "additionalFields": {
+          "description": "Automatic 30-minute buffer after appointment",
+          "showMeAs": "opaque",
+          "summary": "Buffer - Post Appointment",
+          "visibility": "private"
+        }
+      },
+      "id": "5b8ca8cb-a0e0-41f1-bb9f-69385fb04226",
+      "name": "Create Buffer Slot",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Appointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "patient_name": "={{ $json.patient_name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "appointment_date": "={{ $json.preferred_date }}",
+            "appointment_time": "={{ $json.preferred_time }}",
+            "duration_minutes": "={{ $json.duration_minutes }}",
+            "event_id": "={{ $('Create Appointment Event').item.json.id }}",
+            "status": "confirmed",
+            "created_at": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "patient_name",
+            "email",
+            "phone",
+            "appointment_date",
+            "appointment_time",
+            "duration_minutes",
+            "event_id",
+            "status",
+            "created_at"
+          ],
+          "schema": [
+            {
+              "id": "patient_name",
+              "displayName": "patient_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointment_date",
+              "displayName": "appointment_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointment_time",
+              "displayName": "appointment_time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duration_minutes",
+              "displayName": "duration_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6938ded4-0bcb-4c64-a3cb-e680601ca219",
+      "name": "Add Appointment to Database",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        576
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jYRkFhkZEIJPiY36",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Appointment Confirmed - Dr. Strange Physiotherapy",
+        "message": "={{ 'Dear ' + $json.patient_name + ',\\n\\nYour physiotherapy appointment has been confirmed:\\n\\nDate: ' + $json.preferred_date + '\\nTime: ' + $json.preferred_time + ' (Asia/Singapore)\\nDuration: ' + $json.duration_minutes + ' minutes\\n\\nCalendar Link: ' + $('Create Appointment Event').item.json.htmlLink + '\\n\\nIf you need to reschedule or cancel, please contact us.\\n\\nBest regards,\\nDr. Strange Physiotherapy' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "db78b887-ce23-4937-8b6a-5ac720d76bbf",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        576
+      ],
+      "webhookId": "1d1311ab-14c8-4c4e-876c-8467bc5bce7c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JAaxm1cAf5fI9O8O",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "confirmed",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "event_link",
+              "value": "={{ $('Create Appointment Event').item.json.htmlLink }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "calendar_start",
+              "value": "={{ $json.appointmentStart }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "calendar_end",
+              "value": "={{ $json.appointmentEnd }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "patient_name",
+              "value": "={{ $json.patient_name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "08d6393e-1c8d-49cc-9c6e-3697b346df0a",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Appointments"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.email }}"
+            },
+            {
+              "lookupColumn": "event_id",
+              "lookupValue": "={{ $json.event_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "cedd0bf6-7c42-4dd8-a182-92aba360746a",
+      "name": "Find Existing Appointment",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2464,
+        792
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jYRkFhkZEIJPiY36",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.calendarId }}"
+        },
+        "eventId": "={{ $json.event_id }}",
+        "updateFields": {
+          "end": "={{ $json.appointmentEnd }}",
+          "sendUpdates": "all",
+          "start": "={{ $json.appointmentStart }}"
+        }
+      },
+      "id": "e81e2ce2-2f24-406e-86fe-5f980f55a92e",
+      "name": "Update Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Appointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "appointment_date": "={{ $json.preferred_date }}",
+            "appointment_time": "={{ $json.preferred_time }}",
+            "updated_at": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointment_date",
+              "displayName": "appointment_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointment_time",
+              "displayName": "appointment_time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a573a691-9465-45a5-b505-4e58ac8362e3",
+      "name": "Update Appointment Record",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        768
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jYRkFhkZEIJPiY36",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Appointment Rescheduled - Dr. Strange Physiotherapy",
+        "message": "={{ 'Dear ' + $json.patient_name + ',\\n\\nYour physiotherapy appointment has been rescheduled:\\n\\nNew Date: ' + $json.preferred_date + '\\nNew Time: ' + $json.preferred_time + ' (Asia/Singapore)\\n\\nCalendar Link: ' + $('Update Calendar Event').item.json.htmlLink + '\\n\\nIf you need further changes, please contact us.\\n\\nBest regards,\\nDr. Strange Physiotherapy' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "3f591477-e762-46ee-9bf8-a4fa332b6b5b",
+      "name": "Send Reschedule Confirmation",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        768
+      ],
+      "webhookId": "f8ae045e-1079-41ff-be46-12fb880e93c0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JAaxm1cAf5fI9O8O",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.calendarId }}"
+        },
+        "eventId": "={{ $json.event_id }}",
+        "options": {
+          "sendUpdates": "all"
+        }
+      },
+      "id": "0af53efe-3a9e-4d0a-bd2b-1cf9cfc726ea",
+      "name": "Delete Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').item.json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Appointments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "status": "cancelled",
+            "cancelled_at": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": [
+            "event_id"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cancelled_at",
+              "displayName": "cancelled_at",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b8e12c71-522f-454d-a965-a1b95cd1be19",
+      "name": "Update Cancellation Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        960
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jYRkFhkZEIJPiY36",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Appointment Cancelled - Dr. Strange Physiotherapy",
+        "message": "={{ 'Dear ' + $json.patient_name + ',\\n\\nYour physiotherapy appointment has been cancelled as requested.\\n\\nIf you would like to book a new appointment, please contact us.\\n\\nBest regards,\\nDr. Strange Physiotherapy' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "fc99b4b6-b45c-4d44-bf79-739e7055a0e1",
+      "name": "Send Cancellation Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        960
+      ],
+      "webhookId": "fb73437d-6211-4fdf-8038-bb4794781841",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JAaxm1cAf5fI9O8O",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "5b2497cf-03c3-440e-8316-19467db2dda1",
+      "name": "Return Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Booking Request": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check Email Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Present": {
+      "main": [
+        [
+          {
+            "node": "Route by Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Action": {
+      "main": [
+        [
+          {
+            "node": "Lookup Patient in Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Existing Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Patient in Database": {
+      "main": [
+        [
+          {
+            "node": "Convert to Singapore Timezone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to Singapore Timezone": {
+      "main": [
+        [
+          {
+            "node": "Check Working Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Working Hours": {
+      "main": [
+        [
+          {
+            "node": "Search Calendar for Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Alternative Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Alternative Slots": {
+      "main": [
+        [
+          {
+            "node": "Build Outside Hours Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Outside Hours Response": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Calendar for Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Check Conflicts with Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Conflicts with Buffer": {
+      "main": [
+        [
+          {
+            "node": "Slot Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Available?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Calendar Event Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Alternative Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Alternative Slots": {
+      "main": [
+        [
+          {
+            "node": "Build Conflict Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Conflict Response": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Calendar Event Data": {
+      "main": [
+        [
+          {
+            "node": "Create Appointment Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Appointment Event": {
+      "main": [
+        [
+          {
+            "node": "Create Buffer Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Buffer Slot": {
+      "main": [
+        [
+          {
+            "node": "Add Appointment to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Appointment to Database": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation Email": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Existing Appointment": {
+      "main": [
+        [
+          {
+            "node": "Convert to Singapore Timezone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Update Appointment Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Appointment Record": {
+      "main": [
+        [
+          {
+            "node": "Send Reschedule Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reschedule Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Update Cancellation Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cancellation Status": {
+      "main": [
+        [
+          {
+            "node": "Send Cancellation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Cancellation Email": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "52f40d13-396a-4940-ba58-b0bbe73b6a70",
+  "meta": {
+    "instanceId": "1adf2326d259e35c14a1d925a0ef9c4b7067b1b3059009ee83a5f7c1368c7c9f"
+  },
+  "id": "A04iumm8yL1lLq0sw5yTy",
+  "tags": []
+}
